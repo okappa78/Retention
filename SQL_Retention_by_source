@@ -1,0 +1,63 @@
+select source,
+       date,
+       avg(retention) retention_average_by_start
+from
+(
+select start_day,
+       date,
+       round(num_user / num_user_start * 100, 2) retention,
+       source
+from
+(select *
+from
+(select start_day,
+       date - start_day date,
+       count(user_id) num_user,
+       source
+from
+(select *
+from
+(select distinct user_id,
+                 toDate(time) as date,
+                 source
+from simulator_20230220.feed_actions) t1
+join
+(select user_id,
+        min(toDate(time)) as start_day
+from simulator_20230220.feed_actions
+group by user_id) t2
+using user_id
+where start_day >= toDate('2023-02-01')
+      AND start_day <= toDate('2023-02-28')
+      --AND start_day <> toDate('2023-02-13')
+      )
+group by start_day,
+         date,
+         source) t4
+
+join
+
+(select start_day,
+        source,
+        count(distinct user_id) num_user_start
+from
+(select distinct user_id,
+                 toDate(time) as date,
+                 source
+from simulator_20230220.feed_actions) t11
+join
+(select user_id,
+        min(toDate(time)) as start_day
+from simulator_20230220.feed_actions
+group by user_id) t22
+using user_id
+where start_day >= toDate('2023-02-01')
+      AND start_day <= toDate('2023-02-28')
+      --AND start_day <> toDate('2023-02-13')
+group by start_day,
+         source) t3
+using start_day, source) t5
+)
+group by source,
+       date
+having date < 29
