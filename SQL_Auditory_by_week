@@ -1,0 +1,38 @@
+-- Добавлен новый тип пользователя 
+-- repeat_retained - на прошлой неделе активности не было, при этом первая активность была ранее 
+
+SELECT this_week, previous_week, -uniq(user_id) as num_users, status FROM
+
+  (SELECT user_id, 
+    min(toMonday(toDate(time))) start_week,
+    groupUniqArray(toMonday(toDate(time))) as weeks_visited,
+    addWeeks(arrayJoin(weeks_visited), +1) this_week,
+    if(this_week > start_week, 1, 0) as status_mode,
+    if(has(weeks_visited, this_week) = 1, 'retained', 'gone') as status, 
+    addWeeks(this_week, -1) as previous_week
+  FROM simulator_20230220.feed_actions
+  group by user_id)
+
+  where status = 'gone'
+
+  group by this_week, previous_week, status
+
+  HAVING this_week != addWeeks(toMonday(today()), +1)
+
+union all
+
+
+SELECT this_week, previous_week, toInt64(uniq(user_id)) as num_users, status FROM
+
+  (SELECT user_id,
+    min(toMonday(toDate(time))) start_week,
+    groupUniqArray(toMonday(toDate(time))) as weeks_visited, 
+    arrayJoin(weeks_visited) this_week, 
+    if(this_week > start_week, 1, 0) as status_mode,
+    if(has(weeks_visited, addWeeks(this_week, -1)) = 1, 'retained', 
+    if(status_mode = 1, 'repeat_retained', 'new')) as status, 
+    addWeeks(this_week, -1) as previous_week
+  FROM simulator_20230220.feed_actions
+  group by user_id)
+
+  group by this_week, previous_week, status
