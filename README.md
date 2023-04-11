@@ -1,2 +1,1 @@
-Here are the SQL query files 
-for getting retention rates
+Here are the SQL query files for getting retention rates
